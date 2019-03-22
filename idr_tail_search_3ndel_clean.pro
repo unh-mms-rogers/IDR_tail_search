@@ -7,9 +7,10 @@
 ;   2018-06-27 (ajr) -- increase needed Bz bounds for S1 detection to [-2,2] nT  
 ;   2018-07-10 (ajr) -- changed the ephemeris MEC datatype used to T89d as it is kept far more current.                    
 ;   2019-03-14 (ajr) -- cleaned comments and allowed stage 2 and stage 3 to be reversed in order
+;   2019-03-22 (ajr) -- requre Hall E to search for Hall B; added requirement for correct polarity of By to be some ratio of total By in quadrant for Hall B
 
 pro idr_tail_search_3ndel_clean, trange=trange, probe=probe, data_rate=data_rate, level=level, workdir=workdir, suffix=suffix, $
-    coord=coord, efil=efil, swap=swap
+    coord=coord, efil=efil, swap=swap, s3bratio=s3bratio
   if undefined(probe) then probe = '1'
   if undefined(data_rate) then data_rate = 'fast'
   if undefined(level) then level = 'l2'
@@ -23,6 +24,7 @@ pro idr_tail_search_3ndel_clean, trange=trange, probe=probe, data_rate=data_rate
   if undefined(workdir) then workdir = '/home/buck/Work/MMS-IDR-2017'
   if undefined(efil) then efil = 1
   if undefined(swap) then swap = 0	; Switch to change order of checking for Hall fields and |E|
+  if undefined(s3bratio) then s3bratio = 0.5	; ratio for of correct polarity By to total By in a quadrant to be Hall B
   Re = 6371.2                                 ; Earth radius in km for calculating
   
   CD, workdir   ; this should change to desired working directory
@@ -151,6 +153,10 @@ pro idr_tail_search_3ndel_clean, trange=trange, probe=probe, data_rate=data_rate
         s3q2flag = 0    ; in each of the four canonical 2D quadrants
         s3q3flag = 0
         s3q4flag = 0
+	q1t = 0
+	q2t = 0
+	q3t = 0
+	q4t = 0
         
       	bfil_coeff = digital_filter(0.0, 0.0625, 50, 16)  ;  0.5Hz LP filter; Assumes fast survey data; more subtle application needed to be robust for other data rates
       	bfil_data_x = convol(bdata_interp.y[*,0], bfil_coeff)
@@ -160,19 +166,38 @@ pro idr_tail_search_3ndel_clean, trange=trange, probe=probe, data_rate=data_rate
       
         for m=start_index, stop_index do begin  ; step through for hall E field
 ;          if (edata.y[m,2] * signum(bdata_fil.y[m,0]) le -3.) and (del_value[m] ge 1.) then s3e++   ; check for Hall E-field while ions demagnitized 
-          if (edata.y[m,2] * signum(bdata_fil.y[m,0]) le -3.) then s3e++   ; check for Hall E-field while ions demagnitized 
-          ;;;;; Checking for all four Hall-B quadrants. Check requires that there exist a measurement that could satisfy Hall B_y requirements in at least two 
-	  ;		quadrants.  DOES NOT check for sustained or average B_y in correct polarity across time window
-          if abs(bdata_fil.y[m,1]) ge 1. then begin
-            if (signum(bdata_fil.y[m,1]) gt 0.) and (signum(bdata_fil.y[m,0]) gt 0.) and (signum(vdata_interp.y[m,0]) gt 0.) then s3q1flag = 1 ; Q1
-            if (signum(bdata_fil.y[m,1]) lt 0.) and (signum(bdata_fil.y[m,0]) gt 0.) and (signum(vdata_interp.y[m,0]) lt 0.) then s3q4flag = 1 ; Q4
-            if (signum(bdata_fil.y[m,1]) gt 0.) and (signum(bdata_fil.y[m,0]) lt 0.) and (signum(vdata_interp.y[m,0]) lt 0.) then s3q2flag = 1 ; Q2
-            if (signum(bdata_fil.y[m,1]) lt 0.) and (signum(bdata_fil.y[m,0]) lt 0.) and (signum(vdata_interp.y[m,0]) gt 0.) then s3q3flag = 1 ; Q3
-            s3b = s3q1flag + s3q2flag + s3q3flag + s3q4flag
-          endif
+          if (edata.y[m,2] * signum(bdata_fil.y[m,0]) le -2.) then begin ; check for Hall E-field while ions demagnitized 
+	    s3e++
+	    ;;;;; Checking for all four Hall-B quadrants. Check requires that there exist a measurement that could satisfy Hall B_y requirements in at least two 
+	    ;		quadrants.  DOES NOT check for sustained or average B_y in correct polarity across time window
+            if abs(bdata_fil.y[m,1]) ge 1. then begin
+              if (signum(bdata_fil.y[m,1]) gt 0.) and (signum(bdata_fil.y[m,0]) gt 0.) then begin; Q1
+		      q1t++							; Total number of data points in the quadrant
+		      if (signum(vdata_interp.y[m,0]) gt 0.) then s3q1flag++	; Number of data points with correct By polarity for Hall B
+	      endif
+              if (signum(bdata_fil.y[m,1]) lt 0.) and (signum(bdata_fil.y[m,0]) gt 0.) then begin; Q4
+		      q4t++
+		      if (signum(vdata_interp.y[m,0]) lt 0.) then s3q4flag++
+	      endif
+              if (signum(bdata_fil.y[m,1]) gt 0.) and (signum(bdata_fil.y[m,0]) lt 0.) then begin; Q2 
+		      q2t++
+		      if (signum(vdata_interp.y[m,0]) lt 0.) then s3q2flag++
+	      endif
+              if (signum(bdata_fil.y[m,1]) lt 0.) and (signum(bdata_fil.y[m,0]) lt 0.) then begin; Q3
+		      q3t++
+		      if (signum(vdata_interp.y[m,0]) gt 0.) then s3q3flag++
+	      endif
+
+	      if s3q1flag/q1t gt s3bratio then s3b++
+	      if s3q4flag/q4t gt s3bratio then s3b++
+	      if s3q2flag/q2t gt s3bratio then s3b++
+	      if s3q3flag/q3t gt s3bratio then s3b++
+
+            endif
+	  endif
         endfor
         
-        if (s3e gt 0) and (s3b gt 1) then s3tag = ' - S3' else s3tag = ''   ; creates label for reporting if S3 satisfied for time period
+        if (s3e gt 1) and (s3b gt 1) then s3tag = ' - S3' else s3tag = ''   ; creates label for reporting if S3 satisfied for time period
       endif
 
       if swap eq 1 then begin
