@@ -24,7 +24,7 @@ pro idr_tail_search_3ndel_clean, trange=trange, probe=probe, data_rate=data_rate
   if undefined(workdir) then workdir = '/home/buck/Work/MMS-IDR-2017'
   if undefined(efil) then efil = 1
   if undefined(swap) then swap = 0	; Switch to change order of checking for Hall fields and |E|
-  if undefined(s3bratio) then s3bratio = 0.5	; ratio for of correct polarity By to total By in a quadrant to be Hall B
+  if undefined(s3bratio) then s3bratio = 0.1	; ratio for of correct polarity By to total By in a quadrant to be Hall B
   Re = 6371.2                                 ; Earth radius in km for calculating
   
   CD, workdir   ; this should change to desired working directory
