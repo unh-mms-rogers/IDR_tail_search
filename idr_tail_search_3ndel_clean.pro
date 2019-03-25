@@ -171,21 +171,21 @@ pro idr_tail_search_3ndel_clean, trange=trange, probe=probe, data_rate=data_rate
 	    ;;;;; Checking for all four Hall-B quadrants. Check requires that there exist a measurement that could satisfy Hall B_y requirements in at least two 
 	    ;		quadrants.  DOES NOT check for sustained or average B_y in correct polarity across time window
             if abs(bdata_fil.y[m,1]) ge 1. then begin
-              if (signum(bdata_fil.y[m,1]) gt 0.) and (signum(bdata_fil.y[m,0]) gt 0.) then begin; Q1
+              if (signum(vdata_interp.y[m,0]) gt 0.) and (signum(bdata_fil.y[m,0]) gt 0.) then begin; Q1
 		      q1t++							; Total number of data points in the quadrant
-		      if (signum(vdata_interp.y[m,0]) gt 0.) then s3q1flag++	; Number of data points with correct By polarity for Hall B
+		      if (signum(bdata_fil.y[m,1]) gt 0.) then s3q1flag++	; Number of data points with correct By polarity for Hall B
 	      endif
-              if (signum(bdata_fil.y[m,1]) lt 0.) and (signum(bdata_fil.y[m,0]) gt 0.) then begin; Q4
+              if (signum(vdata_interp.y[m,0]) lt 0.) and (signum(bdata_fil.y[m,0]) gt 0.) then begin; Q4
 		      q4t++
-		      if (signum(vdata_interp.y[m,0]) lt 0.) then s3q4flag++
+		      if (signum(bdata_fil.y[m,1]) lt 0.) then s3q4flag++
 	      endif
-              if (signum(bdata_fil.y[m,1]) gt 0.) and (signum(bdata_fil.y[m,0]) lt 0.) then begin; Q2 
+              if (signum(vdata_interp.y[m,0]) lt 0.) and (signum(bdata_fil.y[m,0]) lt 0.) then begin; Q2 
 		      q2t++
-		      if (signum(vdata_interp.y[m,0]) lt 0.) then s3q2flag++
+		      if (signum(bdata_fil.y[m,1]) gt 0.) then s3q2flag++
 	      endif
-              if (signum(bdata_fil.y[m,1]) lt 0.) and (signum(bdata_fil.y[m,0]) lt 0.) then begin; Q3
+              if (signum(vdata_interp.y[m,0]) gt 0.) and (signum(bdata_fil.y[m,0]) lt 0.) then begin; Q3
 		      q3t++
-		      if (signum(vdata_interp.y[m,0]) gt 0.) then s3q3flag++
+		      if (signum(bdata_fil.y[m,1]) lt 0.) then s3q3flag++
 	      endif
 
 	      if s3q1flag/q1t gt s3bratio then s3b++
