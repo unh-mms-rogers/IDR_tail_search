@@ -165,7 +165,6 @@ pro idr_tail_search_3ndel_clean, trange=trange, probe=probe, data_rate=data_rate
       	bdata_fil = {x:edata.x, y:[[bfil_data_x], [bfil_data_y], [bfil_data_z]]}
       
         for m=start_index, stop_index do begin  ; step through for hall E field
-;          if (edata.y[m,2] * signum(bdata_fil.y[m,0]) le -3.) and (del_value[m] ge 1.) then s3e++   ; check for Hall E-field while ions demagnitized 
           if (edata.y[m,2] * signum(bdata_fil.y[m,0]) le -2.) then begin ; check for Hall E-field while ions demagnitized 
 	    s3e++
 	    ;;;;; Checking for all four Hall-B quadrants. Check requires that there exist a measurement that could satisfy Hall B_y requirements in at least two 
@@ -188,16 +187,21 @@ pro idr_tail_search_3ndel_clean, trange=trange, probe=probe, data_rate=data_rate
 		      if (signum(bdata_fil.y[m,1]) lt 0.) then s3q3flag++
 	      endif
 
-	      if s3q1flag/q1t gt s3bratio then s3b++
-	      if s3q4flag/q4t gt s3bratio then s3b++
-	      if s3q2flag/q2t gt s3bratio then s3b++
-	      if s3q3flag/q3t gt s3bratio then s3b++
-
             endif
 	  endif
         endfor
         
-        if (s3e gt 1) and (s3b gt 1) then s3tag = ' - S3' else s3tag = ''   ; creates label for reporting if S3 satisfied for time period
+	      if q1t ne 0 then q1ratio = float(s3q1flag)/q1t else q1ratio = 0 
+	      if q2t ne 0 then q2ratio = float(s3q2flag)/q2t else q2ratio = 0
+	      if q3t ne 0 then q3ratio = float(s3q3flag)/q3t else q3ratio = 0
+	      if q4t ne 0 then q4ratio = float(s3q4flag)/q4t else q4ratio = 0
+
+	      if q1ratio gt s3bratio then s3b++
+	      if q2ratio gt s3bratio then s3b++
+	      if q3ratio gt s3bratio then s3b++
+	      if q4ratio gt s3bratio then s3b++
+
+        if (s3e ge 2) and (s3b ge 2) then s3tag = ' - S3('+string(s3b)+'---'+string(q1ratio)+','+string(q2ratio)+','+string(q3ratio)+','+string(q4ratio)+')' else s3tag = ''   ; creates label for reporting if S3 satisfied for time period
       endif
 
       if swap eq 1 then begin
