@@ -231,8 +231,8 @@ pro idr_tail_search_3ndel_clean, trange=trange, probe=probe, data_rate=data_rate
       ; ***********************************
       
       ; Reporting of results for each segment.  time segment must pass at least S1 to be reported
-      print, time_string(start_time) + ", " + time_string(stop_time) + ', ' + off_str + s2tag + s3tag + "; "       ; prints to console each candidate segment
-      printf, lun, time_string(start_time) + ", " + time_string(stop_time) + ', ' + off_str + s2tag + s3tag + "; " ; prints to file each candidate segment
+      print, "MMS"+probe+", "+time_string(start_time) + ", " + time_string(stop_time) + ', ' + off_str + s2tag + s3tag + "; "       ; prints to console each candidate segment
+      printf, lun, "MMS"+probe+", "+time_string(start_time) + ", " + time_string(stop_time) + ', ' + off_str + s2tag + s3tag + "; " ; prints to file each candidate segment
      
     endif   
     ;;;;;;;;;;;;;;;; End S2 & 3 checks ;;;;;;;;;;;;;;;;;;;;;;;;
