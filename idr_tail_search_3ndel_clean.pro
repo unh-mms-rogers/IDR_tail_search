@@ -104,7 +104,7 @@ pro idr_tail_search_3ndel_clean, trange=trange, probe=probe, data_rate=data_rate
     ; **************************************
     
     off_str = ''    ; string for later application of velocity offsets
-    if (corpos ne 0) and (corneg ne 0) then off_str = off_str + '0,'  ; S1 pass for zero-velocity crossing
+    if (corpos ne 0) and (corneg ne 0) then off_str = off_str + 'VxBz,'  ; S1 pass for zero-velocity crossing
     
     if off_str ne '' then begin ; Requires a correctly correlated reversal to be true
     ;;;;;;;;;;;;;;;;;;;;;;;; Begin S2 & 3 checks ;;;;;;;;;;;;;;;;;;;;;;  
@@ -135,7 +135,7 @@ pro idr_tail_search_3ndel_clean, trange=trange, probe=probe, data_rate=data_rate
           endif
         endfor
         
-        if s2ctr gt 0 then s2tag = ' - S2' else s2tag = ''  ; creates label for reporting if S2 satisfied for time period
+        if s2ctr gt 0 then s2tag = ' - |E|' else s2tag = ''  ; creates label for reporting if S2 satisfied for time period
       endif
       ; ***********************************
       ; End of Stage 2
@@ -201,7 +201,7 @@ pro idr_tail_search_3ndel_clean, trange=trange, probe=probe, data_rate=data_rate
 	      if q3ratio gt s3bratio then s3b++
 	      if q4ratio gt s3bratio then s3b++
 
-        if (s3e ge 2) and (s3b ge 2) then s3tag = ' - S3('+string(s3b)+'---'+string(q1ratio)+','+string(q2ratio)+','+string(q3ratio)+','+string(q4ratio)+')' else s3tag = ''   ; creates label for reporting if S3 satisfied for time period
+        if (s3e ge 2) and (s3b ge 2) then s3tag = ' - Hall('+string(s3b)+'---'+string(q1ratio)+','+string(q2ratio)+','+string(q3ratio)+','+string(q4ratio)+')' else s3tag = ''   ; creates label for reporting if S3 satisfied for time period
       endif
 
       if swap eq 1 then begin
@@ -223,7 +223,7 @@ pro idr_tail_search_3ndel_clean, trange=trange, probe=probe, data_rate=data_rate
           endif
         endfor
         
-        if s2ctr gt 0 then s2tag = ' - S2' else s2tag = ''  ; creates label for reporting if S2 satisfied for time period
+        if s2ctr gt 0 then s2tag = ' - |E|' else s2tag = ''  ; creates label for reporting if S2 satisfied for time period
       endif
     
       ; ***********************************
