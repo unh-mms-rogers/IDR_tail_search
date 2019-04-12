@@ -10,7 +10,7 @@
 ;   2019-03-22 (ajr) -- requre Hall E to search for Hall B; added requirement for correct polarity of By to be some ratio of total By in quadrant for Hall B
 
 pro idr_tail_search_3ndel_clean, trange=trange, probe=probe, data_rate=data_rate, level=level, workdir=workdir, suffix=suffix, $
-    coord=coord, efil=efil, swap=swap, s3bratio=s3bratio
+    coord=coord, efil=efil, swap=swap, s3bratio=s3bratio, nion=nion
   if undefined(probe) then probe = '1'
   if undefined(data_rate) then data_rate = 'fast'
   if undefined(level) then level = 'l2'
@@ -25,6 +25,7 @@ pro idr_tail_search_3ndel_clean, trange=trange, probe=probe, data_rate=data_rate
   if undefined(efil) then efil = 1
   if undefined(swap) then swap = 0	; Switch to change order of checking for Hall fields and |E|
   if undefined(s3bratio) then s3bratio = 0.1	; ratio for of correct polarity By to total By in a quadrant to be Hall B
+  if undefined(nion) then nion = 0.05
   Re = 6371.2                                 ; Earth radius in km for calculating
   
   CD, workdir   ; this should change to desired working directory
@@ -34,7 +35,7 @@ pro idr_tail_search_3ndel_clean, trange=trange, probe=probe, data_rate=data_rate
     mms_load_fpi, trange=trange, probes=[probe], level=level, data_rate=data_rate, datatype='dis-moms'
     mms_qcotrans, 'mms'+probe+'_dis_bulkv_gse_'+data_rate, 'mms'+probe+'_dis_bulkv_'+coord+'_'+data_rate, out_coord=coord
     get_data, 'mms'+probe+'_dis_bulkv_'+coord+'_'+data_rate, data = vdata
-    get_data, 'mms'+probe+'_dis_tempperp_'+data_rate, data = tperpdata             ; perpendicular ion temp data product
+    get_data, 'mms'+probe+'_dis_numberdensity_'+data_rate, data = n_ion     ; Ion density for plasma sheet determination
   endif
 
   if size(vdata, /type) ne 8 or hpca eq 1 then begin  ; checks for successful structure in 'vdata', grabs ion data from HPCA if FPI data missing (Phase 1x)
@@ -43,7 +44,7 @@ pro idr_tail_search_3ndel_clean, trange=trange, probe=probe, data_rate=data_rate
     mms_qcotrans, 'mms'+probe+'_hpca_hplus_ion_bulk_velocity', 'mms'+probe+'_hpca_hplus_ion_bulk_velocity_'+coord, out_coord=coord
     options, 'mms'+probe+'_hpca_hplus_ion_bulk_velocity_'+coord, 'labels', ['Vx (H!U+!N) '+coord, 'Vy (H!U+!N) '+coord, 'Vz (H!U+!N) '+coord]
     get_data, 'mms'+probe+'_hpca_hplus_ion_bulk_velocity_'+coord, data=vdata                 ; HPCA ion velocity data - assumed majority protons
-    get_data, 'mms'+probe+'_hpca_hplus_tperp', data=tperpdata                             ; perpendicular ion temp data product from HPCA protons
+    get_data, 'mms'+probe+'_hpca_hplus_number_density', data=n_ion   ; Ion density data product from HPCA protons
   endif
 
   ;  Load B-field and E-field data and get data for working variables
@@ -67,6 +68,7 @@ pro idr_tail_search_3ndel_clean, trange=trange, probe=probe, data_rate=data_rate
   ; not to do the work twice if we get a hit.  
   bdata_interp = {x:edata.x, y:[[interpol(bdata.y[*,0], bdata.x, edata.x)], [interpol(bdata.y[*,1], bdata.x, edata.x)], [interpol(bdata.y[*,2], bdata.x, edata.x)], [interpol(bdata.y[*,3], bdata.x, edata.x)]]}
   vdata_interp = {x:edata.x, y:[[interpol(vdata.y[*,0], vdata.x, edata.x)], [interpol(vdata.y[*,1], vdata.x, edata.x)], [interpol(vdata.y[*,2], vdata.x, edata.x)]]}
+  nion_interp = {x:edata.x, y:[interpol(n_ion.y, n_ion.x, edata.x)]}
   
   start_time = time_double(trange[0])     ; converts the string time from the trange into unix time in seconds as is used in the data structures
   stop_time = start_time + 180
@@ -92,12 +94,14 @@ pro idr_tail_search_3ndel_clean, trange=trange, probe=probe, data_rate=data_rate
     
     corpos = 0L ; # of time steps with both positive Bz and Vx
     corneg = 0L ; # of time steps with both negetive Bz and Vx
+    if mean(nion_interp.y[start_index:stop_index]) ge nion then begin   ; Checks for average ion density consistant with plasma sheet before beginning.
+      for j=start_index, stop_index do begin  ; check at each time step in rage for S1 conditions
+        if (vdata_interp.y[j,0] gt 100.) and (bdata_interp.y[j,2] gt 2.) then corpos++  ; Check for positive correlation, includes minimum values for both Bz and Vx,
+        ; assumed in nT and km/s
+        if (vdata_interp.y[j,0] lt -100.) and (bdata_interp.y[j,2] lt -2.) then corneg++ ; check for negetive correlation
+      endfor
+    endif
     
-    for j=start_index, stop_index do begin  ; check at each time step in rage for S1 conditions
-      if (vdata_interp.y[j,0] gt 100.) and (bdata_interp.y[j,2] gt 2.) then corpos++  ; Check for positive correlation, includes minimum values for both Bz and Vx, 
-      										      ; assumed in nT and km/s
-      if (vdata_interp.y[j,0] lt -100.) and (bdata_interp.y[j,2] lt -2.) then corneg++ ; check for negetive correlation
-    endfor
 
     ; **************************************
     ; Conditional for Stage 2
