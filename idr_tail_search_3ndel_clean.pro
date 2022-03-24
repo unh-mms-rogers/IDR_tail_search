@@ -10,7 +10,7 @@
 ;   2019-03-22 (ajr) -- requre Hall E to search for Hall B; added requirement for correct polarity of By to be some ratio of total By in quadrant for Hall B
 
 pro idr_tail_search_3ndel_clean, trange=trange, probe=probe, data_rate=data_rate, level=level, workdir=workdir, suffix=suffix, $
-    coord=coord, efil=efil, swap=swap, s3bratio=s3bratio, nion=nion
+    coord=coord, efil=efil, swap=swap, s3bratio=s3bratio, nion=nion, minrev=minrev
   if undefined(probe) then probe = '1'
   if undefined(data_rate) then data_rate = 'fast'
   if undefined(level) then level = 'l2'
@@ -25,7 +25,8 @@ pro idr_tail_search_3ndel_clean, trange=trange, probe=probe, data_rate=data_rate
   if undefined(efil) then efil = 1
   if undefined(swap) then swap = 0	; Switch to change order of checking for Hall fields and |E|
   if undefined(s3bratio) then s3bratio = 0.1	; ratio for of correct polarity By to total By in a quadrant to be Hall B
-  if undefined(nion) then nion = 0.05
+  if undefined(nion) then nion = 0.05		; minimum ion density
+  if undefined(minrev) then minrev = 10		; minimum number of correlated BZ, Vx points on either side of reversal
   Re = 6371.2                                 ; Earth radius in km for calculating
   
   CD, workdir   ; this should change to desired working directory
@@ -48,9 +49,9 @@ pro idr_tail_search_3ndel_clean, trange=trange, probe=probe, data_rate=data_rate
   endif
 
   ;  Load B-field and E-field data and get data for working variables
-  mms_load_fgm, trange=trange, probes=probe, data_rate=bdatarate, instrument='fgm'
+  mms_load_fgm, trange=trange, probes=probe, data_rate=bdatarate, instrument='fgm', /time_clip
   get_data, 'mms'+probe+'_fgm_b_'+coord+'_'+bdatarate+'_'+level, data = bdata          ; B-field data -- Assumes desired coord exists in FGM data.  True for GSE, GSM, etc
-  mms_load_edp, trange=trange, probes=[probe], level=level, data_rate=data_rate
+  mms_load_edp, trange=trange, probes=[probe], level=level, data_rate=data_rate, /time_clip
   mms_qcotrans, 'mms'+probe+'_edp_dce_gse_'+data_rate+'_'+level, 'mms'+probe+'_edp_dce_'+coord+'_'+data_rate+'_'+level, out_coord=coord
   get_data, 'mms'+probe+'_edp_dce_'+coord+'_'+data_rate+'_'+level, data = edata         ; E-field data - using coordinate transformation
 
@@ -108,7 +109,7 @@ pro idr_tail_search_3ndel_clean, trange=trange, probe=probe, data_rate=data_rate
     ; **************************************
     
     off_str = ''    ; string for later application of velocity offsets
-    if (corpos ne 0) and (corneg ne 0) then off_str = off_str + 'VxBz,'  ; S1 pass for zero-velocity crossing
+    if (corpos ge minrev) and (corneg ge minrev) then off_str = off_str + 'VxBz,'  ; S1 pass for zero-velocity crossing
     
     if off_str ne '' then begin ; Requires a correctly correlated reversal to be true
     ;;;;;;;;;;;;;;;;;;;;;;;; Begin S2 & 3 checks ;;;;;;;;;;;;;;;;;;;;;;  
